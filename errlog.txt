@@ -1,0 +1,68 @@
+list index out of range
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/mixins/media.py", line 1147, in user_medias
+    medias = self.user_medias_gql(user_id, amount, sleep)
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/mixins/media.py", line 872, in user_medias_gql
+    medias_page, end_cursor = self.user_medias_paginated_gql(user_id, amount, sleep, end_cursor=end_cursor)
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/mixins/media.py", line 825, in user_medias_paginated_gql
+    return self._user_medias_paginated_app_gql(user_id, amount, end_cursor=end_cursor)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/mixins/media.py", line 134, in _user_medias_paginated_app_gql
+    medias.append(extract_media_v1(self._normalize_xdt_profile_media(media)))
+                  ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/home/downloads/2/pyagent-x/tools/ig/_shared.py", line 67, in _safe_extract
+    return _orig(media)
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/extractors.py", line 55, in extract_media_v1
+    media["video_url"] = sorted(media["video_versions"], key=lambda o: o["height"] * o["width"])[-1]["url"]
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^
+IndexError: list index out of range
+list index out of range
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/mixins/media.py", line 1147, in user_medias
+    medias = self.user_medias_gql(user_id, amount, sleep)
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/mixins/media.py", line 872, in user_medias_gql
+    medias_page, end_cursor = self.user_medias_paginated_gql(user_id, amount, sleep, end_cursor=end_cursor)
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/mixins/media.py", line 825, in user_medias_paginated_gql
+    return self._user_medias_paginated_app_gql(user_id, amount, end_cursor=end_cursor)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/mixins/media.py", line 134, in _user_medias_paginated_app_gql
+    medias.append(extract_media_v1(self._normalize_xdt_profile_media(media)))
+                  ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/home/downloads/2/pyagent-x/tools/ig/_shared.py", line 67, in _safe_extract
+    return _orig(media)
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/extractors.py", line 55, in extract_media_v1
+    media["video_url"] = sorted(media["video_versions"], key=lambda o: o["height"] * o["width"])[-1]["url"]
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/mixins/media.py", line 1032, in user_medias_v1
+    medias_page, next_max_id = self.user_medias_paginated_v1(user_id, amount, end_cursor=next_max_id)
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/mixins/media.py", line 1003, in user_medias_paginated_v1
+    return ([extract_media_v1(media) for media in medias], next_max_id)
+             ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/data/data/com.termux/files/home/downloads/2/pyagent-x/tools/ig/_shared.py", line 67, in _safe_extract
+    return _orig(media)
+  File "/usr/local/lib/python3.13/dist-packages/instagrapi/extractors.py", line 55, in extract_media_v1
+    media["video_url"] = sorted(media["video_versions"], key=lambda o: o["height"] * o["width"])[-1]["url"]
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^
+IndexError: list index out of range
+
+
+
+
+Setuju? (y/N):
+  (y/N): y
+  > write_file filePath=tools/custom/analyze_arkanfzrn.py content=#!/usr/bin/env python3
+"""Cross-referenc
+Confirm: Write create
+/data/data/com.termux/files/home/downloads/2/pyagent-x/tools/custom/analyze_arkanfzrn.py? (8496
+chars)
+  (y/N): y
+  ✗ write_file: [Errno 2] No such file or directory: '/data/data/com.termux/files/home/downloads
+(2.2s)

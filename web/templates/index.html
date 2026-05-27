@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OSINT Agent-X | Threat Intelligence Platform</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#d4d4d4;font-family:'Courier New',monospace;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:6px 16px;border-bottom:1px solid #1a1a1a;font-size:11px;color:#444;flex-shrink:0}
+.topbar-left{color:#555;letter-spacing:2px;text-transform:uppercase}
+.topbar-right{display:flex;gap:16px}
+.topbar-right span{cursor:default}
+.log-area{flex:1;overflow-y:auto;padding:8px 16px}
+.log-entry{display:flex;gap:8px;padding:2px 4px;border-radius:3px;transition:background .1s}
+.log-entry:hover{background:rgba(255,255,255,.015)}
+.log-prefix{width:16px;text-align:center;flex-shrink:0;font-size:12px;margin-top:1px;user-select:none}
+.log-text{font-size:12px;line-height:1.5;word-break:break-word;flex:1}
+.log-time{font-size:10px;color:#222;flex-shrink:0;margin-top:2px;display:none}
+.log-entry:hover .log-time{display:block}
+.splash{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0;opacity:.3;user-select:none;pointer-events:none}
+.splash-title{font-size:40px;font-weight:700;letter-spacing:-1px;color:#555;line-height:1}
+.splash-sub{font-size:11px;color:#444;margin-top:8px;letter-spacing:3px;text-transform:uppercase}
+.input-area{padding:12px 16px 16px;border-top:1px solid #1a1a1a;flex-shrink:0}
+.input-box{border-left:2px solid #2563eb;padding:8px 12px;background:#0d0d0d;border-radius:0 4px 4px 0}
+.input-box input{width:100%;background:transparent;border:none;outline:none;color:#e4e4e4;font-family:inherit;font-size:13px;caret-color:#3b82f6}
+.input-box input::placeholder{color:#333}
+.input-meta{font-size:10px;color:#333;margin-top:4px;display:flex;align-items:center;gap:4px}
+.input-meta .build{color:#1d4ed8}
+.status-bar{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding:0 4px;font-size:11px;color:#333}
+.thought-indicator{display:flex;align-items:center;gap:8px;padding:4px 16px;font-size:12px;color:#d97706}
+.thought-dot{color:#92400e;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.report-box{margin:8px 0;border:1px solid #1a1a1a;font-size:12px;border-radius:4px;overflow:hidden}
+.report-header{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#0d0d0d;border-bottom:1px solid #1a1a1a;color:#555}
+.report-threat{font-weight:700}
+.report-threat.LOW{color:#34d399}
+.report-threat.MEDIUM{color:#fbbf24}
+.report-threat.HIGH{color:#fb923c}
+.report-threat.CRITICAL{color:#f87171}
+.report-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px;border-bottom:1px solid #111}
+.report-label{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
+.report-value{color:#aaa;word-break:break-all}
+.report-value.domain{color:#34d399;text-transform:uppercase}
+.report-narrative{padding:12px 16px;border-bottom:1px solid #111}
+.report-narrative-text{border-left:1px solid #333;padding-left:12px;color:#666;line-height:1.6}
+.report-findings{padding:12px 16px}
+.report-finding{display:flex;gap:8px;color:#aaa;padding:2px 0}
+.report-dot{color:#444}
+.dots{letter-spacing:3px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="topbar-left">agent-x</span>
+  <div class="topbar-right">
+    <span>F1 help</span>
+    <span>F5 clear</span>
+    <span>F9 report</span>
+    <span>F12 reset</span>
+  </div>
+</div>
+<div class="log-area" id="logArea">
+  <div class="splash" id="splash">
+    <div class="splash-title">agent-x</div>
+    <div class="splash-sub">OSINT Intelligence Platform</div>
+  </div>
+  <div id="logContainer"></div>
+  <div id="reportContainer"></div>
+  <div id="thoughtIndicator" class="thought-indicator" style="display:none">
+    <span id="thoughtText">+ Thought: 0ms</span>
+    <span class="thought-dot">·</span>
+  </div>
+  <div id="logsEnd"></div>
+</div>
+<div class="input-area">
+  <form id="commandForm" autocomplete="off">
+    <div class="input-box">
+      <input type="text" id="commandInput" placeholder='Ask anything... "scan example.com"' autofocus/>
+      <div class="input-meta">
+        <span class="build">Build</span>
+        <span>·</span>
+        <span style="font-weight:600">Agent-X</span>
+        <span id="modelInfo" style="color:#444">loading...</span>
+      </div>
+    </div>
+  </form>
+  <div class="status-bar">
+    <div class="dots" id="dotsProgress">·········</div>
+    <div style="display:flex;gap:16px">
+      <span id="logCount">0 entries</span>
+      <span style="color:#333">ctrl+p commands</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const logArea = document.getElementById('logArea');
+const logContainer = document.getElementById('logContainer');
+const reportContainer = document.getElementById('reportContainer');
+const commandInput = document.getElementById('commandInput');
+const commandForm = document.getElementById('commandForm');
+const modelInfo = document.getElementById('modelInfo');
+const logCount = document.getElementById('logCount');
+const thoughtIndicator = document.getElementById('thoughtIndicator');
+const thoughtText = document.getElementById('thoughtText');
+const splash = document.getElementById('splash');
+const dotsProgress = document.getElementById('dotsProgress');
+
+let logs = [];
+let activeReport = null;
+let isProcessing = false;
+let thoughtTimer = null;
+let thoughtTime = 0;
+let dotFrame = 0;
+let dotInterval = null;
+
+function addLog(text, type = 'info') {
+  const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+  logs.push({ id: logs.length, timestamp, text, type });
+  renderLogs();
+}
+
+function renderLogs() {
+  logContainer.innerHTML = logs.map(log => {
+    const styles = { success: ['+', '#34d399'], info: ['-', '#555'], warn: ['!', '#fbbf24'], error: ['×', '#f87171'], input: ['$', '#e4e4e4'] };
+    const [prefix, color] = styles[log.type] || styles.info;
+    const isInput = log.type === 'input';
+    if (isInput) {
+      return `<div class="log-entry" style="border-left:2px solid #6366f1;background:#0d0d0d;padding:4px 12px;margin:4px 0">
+        <span style="color:#444;font-size:12px;user-select:none">agent-x@osint:~$ </span>
+        <span style="color:#e4e4e4;font-size:12px">${escapeHtml(log.text.replace('> ',''))}</span>
+      </div>`;
+    }
+    return `<div class="log-entry">
+      <span class="log-prefix" style="color:${color}">${prefix}</span>
+      <span class="log-text" style="color:${color}">${escapeHtml(log.text)}</span>
+      <span class="log-time">${log.timestamp}</span>
+    </div>`;
+  }).join('');
+  logCount.textContent = `${logs.length} entries`;
+  logArea.scrollTop = logArea.scrollHeight;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function renderReport(report) {
+  const threatColors = { LOW: '#34d399', MEDIUM: '#fbbf24', HIGH: '#fb923c', CRITICAL: '#f87171' };
+  return `<div class="report-box">
+    <div class="report-header">
+      <span># Threat Assessment — ${escapeHtml(report.target.value)}</span>
+      <span class="report-threat ${report.threatLevel}" style="color:${threatColors[report.threatLevel] || '#aaa'}">${report.threatLevel}</span>
+    </div>
+    <div class="report-meta">
+      <div>
+        <div class="report-label">Target</div>
+        <div class="report-value">${escapeHtml(report.target.value)}</div>
+      </div>
+      <div>
+        <div class="report-label">Type</div>
+        <div class="report-value domain">${escapeHtml(report.target.type)}</div>
+      </div>
+    </div>
+    <div class="report-narrative">
+      <div class="report-label" style="margin-bottom:4px">Summary</div>
+      <div class="report-narrative-text">${escapeHtml(report.narrative || '')}</div>
+    </div>
+    <div class="report-findings">
+      <div class="report-label" style="margin-bottom:4px">Findings</div>
+      ${(report.findings || []).map(f => `<div class="report-finding"><span class="report-dot">·</span><span>${escapeHtml(f)}</span></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function setProcessing(processing) {
+  isProcessing = processing;
+  commandInput.disabled = processing;
+  if (processing) {
+    thoughtTime = 0;
+    thoughtIndicator.style.display = 'flex';
+    if (thoughtTimer) clearInterval(thoughtTimer);
+    thoughtTimer = setInterval(() => {
+      thoughtTime += 100;
+      thoughtText.textContent = `+ Thought: ${thoughtTime < 1000 ? thoughtTime + 'ms' : (thoughtTime/1000).toFixed(1) + 's'}`;
+      logArea.scrollTop = logArea.scrollHeight;
+    }, 100);
+    dotFrame = 0;
+    if (dotInterval) clearInterval(dotInterval);
+    dotInterval = setInterval(() => {
+      dotFrame = (dotFrame + 1) % 9;
+      dotsProgress.innerHTML = Array.from({length:9}, (_,i) => {
+        const isHead = i === dotFrame;
+        const isTail = i === (dotFrame+8)%9 || i === (dotFrame+7)%9;
+        const color = isHead ? '#60a5fa' : isTail ? '#2563eb' : '#1a1a1a';
+        return `<span style="color:${color}">·</span>`;
+      }).join('');
+    }, 100);
+  } else {
+    if (thoughtTimer) clearInterval(thoughtTimer);
+    if (dotInterval) clearInterval(dotInterval);
+    thoughtIndicator.style.display = 'none';
+    dotsProgress.innerHTML = '·········';
+  }
+}
+
+async function runScan(target) {
+  setProcessing(true);
+  activeReport = null;
+  reportContainer.innerHTML = '';
+  splash.style.display = 'none';
+  addLog(`Initializing scan on [${target.type}]: ${target.value}`, 'warn');
+
+  try {
+    addLog('Running network resolution, DNS, GeoIP, and AI analysis...', 'info');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const response = await fetch('/api/osint/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Server error');
+    }
+    const data = await response.json();
+    if (data.report) {
+      addLog('Analysis complete.', 'success');
+      activeReport = data.report;
+      reportContainer.innerHTML = renderReport(data.report);
+      logArea.scrollTop = logArea.scrollHeight;
+    }
+  } catch (err) {
+    addLog(`Scan failed: ${err.message}`, 'error');
+  } finally {
+    setProcessing(false);
+    setTimeout(() => commandInput.focus(), 100);
+  }
+}
+
+commandForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const cmd = commandInput.value.trim();
+  if (!cmd || isProcessing) return;
+  commandInput.value = '';
+  splash.style.display = 'none';
+  addLog(`> ${cmd}`, 'input');
+
+  const parts = cmd.split(' ');
+  const action = parts[0].toLowerCase();
+  const args = parts.slice(1);
+
+  if (action === 'help') {
+    addLog('Available commands:', 'info');
+    addLog('  help             - Show this help message', 'info');
+    addLog('  clear            - Clear terminal output', 'info');
+    addLog('  scan <target>    - Initiate AI-driven OSINT scan', 'info');
+    addLog('  status           - Check agent and system status', 'info');
+    return;
+  }
+  if (action === 'clear') {
+    logContainer.innerHTML = '';
+    reportContainer.innerHTML = '';
+    logs = [];
+    activeReport = null;
+    logCount.textContent = '0 entries';
+    return;
+  }
+  if (action === 'status') {
+    addLog('Checking agent status...', 'info');
+    try {
+      const response = await fetch('/api/status');
+      const data = await response.json();
+      addLog('Agent Core: ONLINE', 'success');
+      addLog('Agent-X OSINT Platform v5.0', 'info');
+      const provider = data.provider || 'unknown';
+      const model = data.model || 'unknown';
+      modelInfo.textContent = `${model} ${provider}`;
+      if (data.aiStatus === 'NOT_CONFIGURED') addLog(`${provider} API: NOT CONFIGURED`, 'error');
+      else if (data.aiStatus === 'CONNECTED') addLog(`${provider} API: CONNECTED (${model})`, 'success');
+      else if (data.aiStatus === 'ERROR') addLog(`${provider} API: ERROR — ${data.reason}`, 'warn');
+    } catch (err) {
+      addLog(`Failed to fetch status: ${err.message}`, 'error');
+    }
+    return;
+  }
+  if (action === 'scan') {
+    if (args.length === 0) { addLog('Missing target. Usage: scan <target>', 'error'); return; }
+    const targetStr = args.join(' ');
+    let type = 'domain';
+    if (targetStr.includes('@')) type = 'email';
+    else if (/^\d{1,3}(\.\d{1,3}){3}$/.test(targetStr)) type = 'ip';
+    else if (!targetStr.includes('.')) type = 'username';
+    await runScan({ type, value: targetStr });
+    return;
+  }
+  addLog(`Command not found: ${action}. Type "help" for a list of commands.`, 'error');
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  const input = commandInput;
+  if (document.activeElement !== input && document.activeElement.tagName === 'INPUT') return;
+  if (['F1','F2','F5','F9','F12'].includes(e.key)) e.preventDefault();
+  else return;
+  if (e.key === 'F12') {
+    addLog('Session terminated.', 'warn');
+    logContainer.innerHTML = '';
+    reportContainer.innerHTML = '';
+    logs = [];
+    activeReport = null;
+    splash.style.display = 'flex';
+    setProcessing(false);
+    return;
+  }
+  if (isProcessing) return;
+  switch (e.key) {
+    case 'F1':
+      addLog('Available commands:', 'info');
+      addLog('  help             - Show help', 'info');
+      addLog('  clear            - Clear terminal', 'info');
+      addLog('  scan <target>    - OSINT scan', 'info');
+      addLog('  status           - System status', 'info');
+      break;
+    case 'F2':
+      input.value = 'scan ';
+      input.focus();
+      break;
+    case 'F5':
+      logContainer.innerHTML = '';
+      reportContainer.innerHTML = '';
+      logs = [];
+      activeReport = null;
+      break;
+    case 'F9':
+      if (activeReport) {
+        addLog(`Last report: ${activeReport.target.value} — ${activeReport.threatLevel}`, 'success');
+        activeReport.findings.forEach(f => addLog(f, 'info'));
+      } else {
+        addLog('No active report.', 'error');
+      }
+      break;
+  }
+});
+
+// Fetch status on load
+fetch('/api/status')
+  .then(r => r.json())
+  .then(d => { modelInfo.textContent = `${d.model || 'unknown'} ${d.provider || ''}`; })
+  .catch(() => {});
+</script>
+</body>
+</html>
